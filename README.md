@@ -32,4 +32,30 @@ https://play.google.com/store/apps/details?id=com.keuwl.arduinobluetooth&hl=en_U
 I found a way by uploading an empty sketch at the right moment but it is tricky and maybe dangeroux. Not expert enough to know.  
 
 
+To interact with the tool you need to set a TX/RX TTL or HC06 on the Arduino on pin 9 & 8 (by default)  
+![image](https://github.com/EloiStree/2023_06_21_ArduinoToX360/assets/20149493/1c91fae3-42a9-41a2-8b8e-d281abeabfc7)  
+The TTL I use is  PL2303 https://amzn.to/3XjFpsM but you need to do Window update in the device manager.  
+(Youtube of how to do it: https://www.youtube.com/results?search_query=PL2303+driver+install)   
+
+If you use an HC06 and never use on before you need to learn how to do a voltage splite.
+Video about it: https://youtu.be/NXlyo0goBrU
+
+
+## Interaction
+
+In my code . means press and ' means release.  
+So you can write ` x. y. b' \n` to press x and y and release b.
+
+For the joystick you can write command like this    
+`jlh%0.5` to set the joystick at  50% on the left joystick to the left side.    
+`tr%0.8` to press the trigger right at 80%     
+
+`release` with release everything  
+`debug on` will active debug message on the HC06/TTL but so losing some time doing it.  
+`debug off` will remove debug message to "go faster".  
+
+To know all the input you can check in the Ino file of the repository.
+ 
+
+
 
