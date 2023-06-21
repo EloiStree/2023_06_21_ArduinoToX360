@@ -114,12 +114,13 @@ m_joystickReport+=" TR "+ String(XInput.getTrigger(TRIGGER_RIGHT));
 
 // At start of the Arduino, we check that the serial is connected.
 void setup() {
+
   BTserial.begin(9600); 
   Serial.begin(9600);
   while(!BTserial) {; }
-  delay(500);
+    delay(500);
   BTserial.println("Serial available !");
-  XInput.setAutoSend(false);  
+  XInput.setAutoSend(true);  
   XInput.begin();
 
  
@@ -155,6 +156,7 @@ void loop() {
 
 ////////////////: Split the text from the ' ' space between:////////////////:
         m_receveivedToProcess.replace('|',' ');
+        m_receveivedToProcess.replace(';',' ');
         m_receveivedToProcess.replace('\n',' ');
         m_receveivedToProcess.replace('\r',' ');
         m_receveivedToProcess.trim();
@@ -162,17 +164,6 @@ void loop() {
 
 m_receveivedToProcess = " "+m_receveivedToProcess+" ";
 
-
-//   if(m_debugModeSerial)
-//             BTserial.println("in|"+m_receveivedToProcess+"|in");
-
-//  // Replace strings from the table
-
-//   for (int i = 0; i < sizeof(findStrings) / sizeof(findStrings[0]); i++) {
-//     m_receveivedToProcess.replace(findStrings[i], findStringsnoSpace[i]);
-//   }
-//   if(m_debugModeSerial)
-//             BTserial.println("replace|"+m_receveivedToProcess+"|replace");
 
 
        
@@ -273,41 +264,42 @@ m_receveivedToProcess = " "+m_receveivedToProcess+" ";
 
               float value = GetFloatFromPercent(m_receveivedToProcess);
               if(m_debugLine)
-                  BTserial.print("Value "+ String(value)  ); 
+                  BTserial.print("\nValue "+ String(value)  ); 
               if(StartBy4(m_receveivedToProcess,'j','l','h','%')) { 
                   m_jlh = value;
-                  if(m_debugModeSerial) BTserial.print("jlh "+ String(m_jlh)+" " + String(m_jlv)); 
+                  if(m_debugModeSerial) BTserial.print("\njlh "+ String(m_jlh)+" " + String(m_jlv)); 
                   XInput.setJoystick(JOY_LEFT, m_jlh*JoyMax, m_jlv*JoyMax); 
               }
               if(StartBy4(m_receveivedToProcess,'j','l','v','%')) { 
                   m_jlv = value; 
-                  if(m_debugModeSerial) BTserial.print("jlv "+ String(m_jlh)+" " + String(m_jlv)); 
+                  if(m_debugModeSerial) BTserial.print("\njlv "+ String(m_jlh)+" " + String(m_jlv)); 
                   XInput.setJoystick(JOY_LEFT, m_jlh*JoyMax, m_jlv*JoyMax);  
                   }
               if(StartBy4(m_receveivedToProcess,'j','r','h','%')) {
                   m_jrh = value; 
-                  if(m_debugModeSerial) BTserial.print("jrh "+ String(m_jrh)+" " + String(m_jrv)); 
+                  if(m_debugModeSerial) BTserial.print("\njrh "+ String(m_jrh)+" " + String(m_jrv)); 
                   XInput.setJoystick(JOY_RIGHT, -m_jrh*JoyMax, m_jrv*JoyMax);  }
               if(StartBy4(m_receveivedToProcess,'j','r','v','%')) { 
                   m_jrv = value; 
-                  if(m_debugModeSerial) BTserial.print("jrv "+ String(m_jrh)+" " + String(m_jrv)); 
+                  if(m_debugModeSerial) BTserial.print("\njrv "+ String(m_jrh)+" " + String(m_jrv)); 
                   XInput.setJoystick(JOY_RIGHT, -m_jrh*JoyMax, m_jrv*JoyMax); }
 
               if(StartBy3(m_receveivedToProcess,'t','l','%')) { 
                 
-                  if(m_debugModeSerial) BTserial.print("tl "+ String(value)); 
+                  if(m_debugModeSerial) BTserial.print("\ntl "+ String(value)); 
                   XInput.setTrigger(TRIGGER_LEFT, value*4095);
               } 
               if(StartBy3(m_receveivedToProcess,'t','r','%')) { 
                 
-                  if(m_debugModeSerial) BTserial.print("tr "+ String(value)); 
+                  if(m_debugModeSerial) BTserial.print("\ntr "+ String(value)); 
                   XInput.setTrigger(TRIGGER_RIGHT, value*4095);
               } 
           }
+          
+          if(m_wantToSendXboxReport)
+            XInput.send();
         }
 
-        if(m_wantToSendXboxReport)
-          XInput.send();
         if( m_newInputFound && m_debugModeSerial){
         BTserial.println(GetDebugLineReport()); 
         BTserial.println(GetDebugJoystickLineReport()); 
