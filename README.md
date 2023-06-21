@@ -18,12 +18,13 @@ Install:
 ![image](https://github.com/EloiStree/2023_06_21_ArduinoToX360/assets/20149493/f2ce191f-7c30-4fd9-b89f-73645d572f13)
 
 You can install Serial Debug Assitance on Window:  
-https://apps.microsoft.com/store/detail/serial-debug-assistant/9NBLGGH43HDM?hl=fr-be&gl=be&rtc=1  
+Window App :https://apps.microsoft.com/store/detail/serial-debug-assistant/9NBLGGH43HDM?hl=fr-be&gl=be&rtc=1  
 ![image](https://github.com/EloiStree/2023_06_21_ArduinoToX360/assets/20149493/0ac98b37-984a-41b6-845a-4cfaeba7b05e)  
 
 Or Bluetooth Electronics on Android if you want to communicate with HC06    
-https://play.google.com/store/apps/details?id=com.keuwl.arduinobluetooth&hl=en_US  
-![image](https://github.com/EloiStree/2023_06_21_ArduinoToX360/assets/20149493/c252738d-39a6-4f3f-a295-9d43a4dd95c2)  
+App on the Google Store : https://play.google.com/store/apps/details?id=com.keuwl.arduinobluetooth&hl=en_US  
+![image](https://github.com/EloiStree/2023_06_21_ArduinoToX360/assets/20149493/33357ab3-8be6-4686-9293-8bf0ec639b58)
+
 
 
 ⚠️ WARNING ⚠️ When you will upload the sketch on your Arduino with the XInput board. Your Arduino will be detected as Xbox Controller ⚠️
