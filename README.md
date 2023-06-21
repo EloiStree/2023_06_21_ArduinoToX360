@@ -38,7 +38,9 @@ To interact with the tool you need to set a TX/RX TTL or HC06 on the Arduino on 
 The TTL I use is  PL2303 https://amzn.to/3XjFpsM but you need to do Window update in the device manager.  
 (Youtube of how to do it: https://www.youtube.com/results?search_query=PL2303+driver+install)   
 
-If you use an HC06 and never use on before you need to learn how to do a voltage splite.
+If you use an HC06 and never use on before you need to learn how to do a voltage split.
+![image](https://github.com/EloiStree/2023_06_21_ArduinoToX360/assets/20149493/4bf54c29-52ba-4031-9d99-657d1ba86a69)
+
 Video about it: https://youtu.be/NXlyo0goBrU
 
 
