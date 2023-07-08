@@ -12,8 +12,50 @@
 #include <XInput.h>
 #include <SoftwareSerial.h>
 #include <Arduino.h>
+#include <math.h>
 
 
+const int maxCommandSize=14;
+
+
+bool m_targetXInput = false;
+
+//To Tweakable value
+bool m_debugModeSerial = true;       // Will send serial message to debug
+bool m_wantToSendXboxReport = true;  //To put on false when you debug on none XInput board.
+
+//Arduino Leonardo
+//const byte m_rxPin = 9; // RX/TX pin to the TTL or HC06
+//const byte m_txPin = 8; // RX/TX pin to the TTL or HC06
+
+//Adruino MICRO PRO
+const byte m_rxPin = 9;                     // RX/TX pin to the TTL or HC06
+const byte m_txPin = 7;                     // RX/TX pin to the TTL or HC06
+SoftwareSerial BTserial(m_rxPin, m_txPin);  // RX //TX
+// Note that this code is not design to work without a TTL/HC06
+// Note that you can't use classic serial port as it is used to simulate the x360.
+
+
+
+const int m_messageBufferMax=240;
+char  m_messageBuffer [240] ;
+//PRIVATE
+const int JoyMax = 32767;
+const int TriggerMax = 255;
+// Some temp value used in the code.
+bool m_up;
+bool m_down;
+bool m_right;
+bool m_left;
+float m_jlh = 0;
+float m_jlv = 0;
+float m_jrh = 0;
+float m_jrv = 0;
+bool m_newInputFound;
+String m_receivedMessageSerial = "";
+String m_receveivedToProcess = "";
+String m_debugLine = "--------------------------------------------------------------------------------";
+String m_joystickReport;
 
 
 
@@ -21,59 +63,290 @@
 ///////////////////////////////////::::
 
 
+class CharArrayTarget {
+private:
+  char* m_array;
+  int m_start;
+  int m_end;
+  int m_lenght;
+
+public:
+
+ CharArrayTarget() {
+    m_array = NULL;
+    m_start=0;
+    m_end=0;
+    m_lenght=0;
+  }
+  // Constructor
+  CharArrayTarget(char* array, int start, int end) {
+    m_array = array;
+    m_start=start;
+    m_end=end;
+    m_lenght=end-start;
+  }
+ void set(char* array, int start, int end) {
+    m_array = array;
+    m_start=start;
+    m_end=end;
+    m_lenght=end-start;
+  }
+  int getAsInt(char c){
+
+    if(c=='0') return 0;
+    if(c=='1') return 1;
+    if(c=='2') return 2;
+    if(c=='3') return 3;
+    if(c=='4') return 4;
+    if(c=='5') return 5;
+    if(c=='6') return 6;
+    if(c=='7') return 7;
+    if(c=='8') return 8;
+    if(c=='9') return 9;
+    return 0;
+
+  }
+
+int powdecimal(int pow){
+  int value =1;
+  if(pow==0)
+    return value;
+  for(int i = pow; i >0; i--) 
+    value*= 10;
+    return value;
+
+}
+  int getAsInt(){
+     int value = 0 ;
+     for(int i = 0; i <m_lenght; i++){
+       char c = GetChar(m_lenght-1-i);
+      // Serial.print(i);
+      // Serial.print(" ");
+      //  Serial.print(c);
+      //  Serial.print(" * ");
+      //  Serial.println(String(powdecimal(i)));
+       value += getAsInt( c ) * powdecimal(i) ;
+      
+     }
+      //  Serial.print(" R ");
+      //  Serial.println(value);
+     return value;
+  }
+ 
+
+  void trim() {
+    while( (m_array[m_start]==' ' || m_array[m_start]=='\n') && m_start<m_end)
+      m_start+=1;
+      
+    while( (m_array[m_end]==' ' || m_array[m_end]=='\n') && m_end>m_start )
+      m_end-=1;
+      
+    computerLenght();
+  }
+  bool endwith(char c ) { 
+   
+    return m_array[m_end]==c ;
+  } 
+  bool startwith(char c ) {
+   
+    return m_array[m_start]==c ;
+  }
+  void removelastchar() {
+    m_end-=1;
+    computerLenght();
+  } 
+  void removefirstchar() {
+    m_start+=1;
+    computerLenght();
+  }
+  void computerLenght(){
+
+    m_lenght=(m_end-m_start)+1;
+
+  }
+
+  char* getArrayStart() {
+    return m_array[m_start];
+  }
+  char* getArrayEnd() {
+    return m_array[m_end];
+  }
+  int getArrayLength() {
+    return m_lenght;
+  }
+
+  char operator[](int index) {
+    if (index >= 0 && index < m_lenght) {
+      return m_array[m_start + index];
+    } else {
+      Serial.println("Index out of bounds");
+      return '\0';
+    }
+  }
+  char GetChar(int index) {
+    if (index >= 0 && index < m_lenght) {
+      return m_array[m_start + index];
+    } else {
+      Serial.println("Index out of bounds");
+      return '\0';
+    }
+  } 
+  void SetChar(int index, char c) {
+    if (index >= 0 && index < m_lenght)
+      m_array[m_start + index]=c;
+  }
+
+  
+
+  // Get the character at the specified index
+  char getCharAtIndex(int index) {
+    if (index >= 0 && index < m_array) {
+      return m_array[m_start + index];
+    } else {
+      // Handle out-of-bounds access gracefully
+      Serial.println("Index out of bounds");
+      // You can return a default value or handle the error as needed
+      // Here, we return the null character
+      return '\0';
+    }
+  }
+};
+
+
 class DelayMessage {
 public:
   DelayMessage() {
-    m_timeReach = true;
-    m_command = "0123";
+    flush();
     m_timestamp = millis();
+    m_hadBedRelay=false;
+  }
+
+  void set_command_at(CharArrayTarget command, unsigned long timestamp) {
+
+    for (int i = 0; i < maxCommandSize  ; i++) {
+      if(i < command.getArrayLength())
+          m_command[i]=command[i];
+      else 
+          m_command[i]=' ';
+    }
+    m_timestamp = timestamp;
+    m_hadBedRelay=false;
   }
 
   void set_command(String command, unsigned long millisecond) {
-    m_timeReach = false;
-    m_command = command;
+      for (int i = 0; i < maxCommandSize  ; i++) {
+      if(i < command.length())
+          m_command[i]=command[i];
+      else 
+          m_command[i]=' ';
+    }
     m_timestamp = millis() + millisecond;
+    m_hadBedRelay=false;
   }
 
   void set_command_at(String command, unsigned long timestamp) {
-    m_timeReach = false;
-    m_command = command;
+
+    for (int i = 0; i < maxCommandSize  ; i++) {
+      if(i < command.length())
+          m_command[i]=command[i];
+      else 
+          m_command[i]=' ';
+    }
     m_timestamp = timestamp;
+    m_hadBedRelay=false;
   }
 
-  void set_as_used() {
-    m_timeReach = true;
+  void set_as_relayed() {
+    m_hadBedRelay=true;
+  }
+  bool had_been_relay(){
+    return m_hadBedRelay;
+
   }
 
-  bool is_to_dealed_with() {
-    return !m_timeReach;
-  }
 
   bool is_time_reach() {
     return millis() >= m_timestamp;
   }
 
-  bool m_timeReach;
-  String m_command;
+  void flush(){
+     for (int i = 0; i < maxCommandSize ; i++) {
+       m_command[i]=' ';
+    }
+
+  }
+
+  char  m_command [14];
   unsigned long m_timestamp;
+  bool m_hadBedRelay;
+
+
+
 };
 
 const int maxIndex = 40;
 DelayMessage delayArray[maxIndex];
 
+
+
+
+
+
+///////////////////////////////:
+
+
+void DebugLogWaiting(){
+
+      BTserial.println("------------START-------------");
+      BTserial.println("Index, is dealed, is reached, command, timestamp");
+      for (int i = 0; i < maxIndex; i++) {
+            
+              BTserial.println();
+              BTserial.print(i);
+              BTserial.print(" - ");
+              BTserial.print(delayArray[i].had_been_relay());
+              BTserial.print(" - ");
+              BTserial.print(delayArray[i].is_time_reach());
+              BTserial.print(" - ");
+              BTserial.print(delayArray[i].m_command);
+              BTserial.print(" - ");
+              BTserial.print(delayArray[i].m_timestamp);
+              
+            
+        }
+        BTserial.println("-----------END--------------");
+    
+
+}
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////:
+
+
+
 bool usePrintLog = true;
 
 void add_delay_command(String shortcut,  unsigned long  msToAdd) {
     for (int i = 0; i < maxIndex; i++) {
-        if (!delayArray[i].is_to_dealed_with()) {
+        if (delayArray[i].had_been_relay()) {
             delayArray[i].set_command(shortcut, msToAdd);
+            return;
         }
     }
 }
 
 void add_time_command(String shortcut, unsigned long timestamp) {
     for (int i = 0; i < maxIndex; i++) {
-        if (!delayArray[i].is_to_dealed_with()) {
+        if (delayArray[i].had_been_relay()) {
+            delayArray[i].set_command_at(shortcut, timestamp);
+            return;
+        }
+    }
+}
+void add_time_command(CharArrayTarget shortcut, unsigned long timestamp) {
+    for (int i = 0; i < maxIndex; i++) {
+        if (delayArray[i].had_been_relay()) {
             delayArray[i].set_command_at(shortcut, timestamp);
             return;
         }
@@ -129,47 +402,6 @@ int charToInt(char c) {
 
 
 
-
-bool m_targetXInput = false;
-
-//To Tweakable value
-bool m_debugModeSerial = true;       // Will send serial message to debug
-bool m_wantToSendXboxReport = true;  //To put on false when you debug on none XInput board.
-
-//Arduino Leonardo
-//const byte m_rxPin = 9; // RX/TX pin to the TTL or HC06
-//const byte m_txPin = 8; // RX/TX pin to the TTL or HC06
-
-//Adruino MICRO PRO
-const byte m_rxPin = 9;                     // RX/TX pin to the TTL or HC06
-const byte m_txPin = 7;                     // RX/TX pin to the TTL or HC06
-SoftwareSerial BTserial(m_rxPin, m_txPin);  // RX //TX
-// Note that this code is not design to work without a TTL/HC06
-// Note that you can't use classic serial port as it is used to simulate the x360.
-
-
-
-
-//PRIVATE
-const int JoyMax = 32767;
-const int TriggerMax = 255;
-// Some temp value used in the code.
-bool m_up;
-bool m_down;
-bool m_right;
-bool m_left;
-float m_jlh = 0;
-float m_jlv = 0;
-float m_jrh = 0;
-float m_jrv = 0;
-bool m_newInputFound;
-String m_receivedMessageSerial = "";
-String m_receveivedToProcess = "";
-String m_debugLine = "--------------------------------------------------------------------------------";
-String m_joystickReport;
-
-
-
 // Some function
 
 bool StartBy4(String text, char c1, char c2, char c3, char c4) {
@@ -180,6 +412,14 @@ bool StartBy3(String text, char c1, char c2, char c3) {
 
   return text[0] == c1 && text[1] == c2 && text[2] == c3;
 }
+bool StartBy2(String text, char c1, char c2) {
+
+  return text[0] == c1 && text[1] == c2 ;
+}
+bool EndWith(String text, char c) {
+
+  return text[ text.length() - 1 ] == c;
+}
 float GetFloatFromPercent(String text) {
   int start = text.indexOf('%') + 1;
   int end = text.length();
@@ -187,8 +427,6 @@ float GetFloatFromPercent(String text) {
   return integerValue.toFloat();
 }
 
-
-// Some function to debug in the serial console.
 
 String GetDebugLineReport() {
   m_debugLine[0] = 'l';
@@ -269,18 +507,90 @@ String trim(String str) {
 const int ADC_Max = 1023;  // 10 bit
 
 
+void OverrideBuffer(){
+   for (int i = 0; i < m_messageBufferMax; i++) {     
+               m_messageBuffer[i]=';';
+   }
+}
+
+int GetIndexofLineEnd(){
+  for (int i = 0; i < m_messageBufferMax; i++) {     
+          if(     m_messageBuffer[i]==';')
+            return i;
+   }
+   return -1;
+}
+
+void FlushBuffer(char c){
+
+  for (int i = 0; i < m_messageBufferMax; i++) {
+    
+    m_messageBuffer[i]='c';
+   }
+}void FlushBuffer(){
+
+  for (int i = 0; i < m_messageBufferMax; i++) {
+    
+    m_messageBuffer[i]=';';
+   }
+}
+
+void SerialDebugDebuff(){
+
+  for (int i = 0; i < m_messageBufferMax; i++) {
+    
+    Serial.print(m_messageBuffer[i]);     
+    BTserial.print(m_messageBuffer[i]);
+   }
+    Serial.println();
+    BTserial.println();
+
+}
+void Log(CharArrayTarget target){
+
+  for (int i = 0; i < target.getArrayLength(); i++) {
+    
+    Serial.print(target[i]);     
+    BTserial.print(target[i]);
+   }
+    Serial.println();
+    BTserial.println();
+
+}
+
 // At start of the Arduino, we check that the serial is connected.
 void setup() {
 
   XInput.setJoystickRange(0, ADC_Max); 
   BTserial.begin(9600);
   Serial.begin(9600);
-  while (!BTserial) { ; }
+  while (!Serial) { ; }
+  //while (!BTserial) { ; }
   delay(500);
   BTserial.println("Serial available !");
   delay(500);
   XInput.setAutoSend(false);
   XInput.begin();
+  FlushBuffer();
+    SerialDebugDebuff();
+    for (int i = 0; i < maxIndex; i++) { 
+        
+                delayArray[i].set_as_relayed();
+            
+    } 
+    m_messageBuffer[0]='0';
+    m_messageBuffer[1]='1';
+    m_messageBuffer[2]='2';
+    m_messageBuffer[3]='3';
+    m_messageBuffer[4]='4';
+    SerialDebugDebuff();
+CharArrayTarget chunkTarget = CharArrayTarget(m_messageBuffer, 0,3);
+add_time_command(chunkTarget, millis()+2000);
+
+DebugLogWaiting();
+Log(chunkTarget);
+
+
 }
 
 void ExecutionLog(String cmd){
@@ -301,95 +611,143 @@ void ExecutionLog(DelayMessage cmd){
 }
 
 
-void loop() {
 
-m_newInputFound = false;
-for (int i = 0; i < maxIndex; i++) {
-    if (delayArray[i].is_to_dealed_with()) {
-        if (delayArray[i].is_time_reach()) {
-            delayArray[i].set_as_used();
-            String toExe=  delayArray[i].m_command;
-            ExecuteCommand(toExe);
-        }
-    }
+
+void Replace(CharArrayTarget message, char toReplace, char by){
+  for (int i = 0; i < message.getArrayLength(); i++) {     
+          if(message.GetChar(i)==toReplace)
+            message.SetChar(i,by);
+  }
+}
+void ToLower(CharArrayTarget message){
+  for (int i = 0; i < message.getArrayLength(); i++) {     
+    if(message.GetChar(i)=='A') message.SetChar(i,'a');
+    else if(message.GetChar(i)=='B')message.SetChar(i,'b');
+    else if(message.GetChar(i)=='C')message.SetChar(i,'c');
+    else if(message.GetChar(i)=='D')message.SetChar(i,'d');
+    else if(message.GetChar(i)=='E')message.SetChar(i,'e');
+    else if(message.GetChar(i)=='F')message.SetChar(i,'f');
+    else if(message.GetChar(i)=='G')message.SetChar(i,'g');
+    else if(message.GetChar(i)=='H')message.SetChar(i,'h');
+    else if(message.GetChar(i)=='I')message.SetChar(i,'i');
+    else if(message.GetChar(i)=='J')message.SetChar(i,'j');
+    else if(message.GetChar(i)=='K')message.SetChar(i,'k');
+    else if(message.GetChar(i)=='L')message.SetChar(i,'l');
+    else if(message.GetChar(i)=='M')message.SetChar(i,'m');
+    else if(message.GetChar(i)=='N')message.SetChar(i,'n');
+    else if(message.GetChar(i)=='O')message.SetChar(i,'o');
+    else if(message.GetChar(i)=='P')message.SetChar(i,'p');
+    else if(message.GetChar(i)=='Q')message.SetChar(i,'q');
+    else if(message.GetChar(i)=='R')message.SetChar(i,'r');
+    else if(message.GetChar(i)=='S')message.SetChar(i,'s');
+    else if(message.GetChar(i)=='T')message.SetChar(i,'t');
+    else if(message.GetChar(i)=='U')message.SetChar(i,'u');
+    else if(message.GetChar(i)=='V')message.SetChar(i,'v');
+    else if(message.GetChar(i)=='W')message.SetChar(i,'w');
+    else if(message.GetChar(i)=='X')message.SetChar(i,'x');
+    else if(message.GetChar(i)=='Y')message.SetChar(i,'y');
+    else if(message.GetChar(i)=='Z')message.SetChar(i,'z');
+  }
 }
 
+void LogString(String serial){
+          BTserial.println(serial);
+          Serial.println(serial);
+}
+void Log(char * arrayChar){
 
-
-
-  if (BTserial.available() > 0) {
-
-    char c = BTserial.read();
-    m_receivedMessageSerial += c;
-    if (c == '\n' || c == ';') {
-      if (m_debugModeSerial) {
-        Serial.print("\n");
-        Serial.print("Arduino Recieved:");
-        Serial.print(m_receivedMessageSerial);
-        Serial.print("\n");
-        BTserial.print("Arduino Recieved:");
-        BTserial.print(m_receivedMessageSerial);
+      for (int i = 0; i < strlen(arrayChar); i++) 
+      {     
+          BTserial.print(arrayChar[i]);
+          Serial.print(arrayChar[i]);
       }
-      m_receveivedToProcess = m_receivedMessageSerial;
-      m_newInputFound = true;
-    }
-  }
-
-    if (m_newInputFound) {
-      ExecuteCommand(m_receveivedToProcess);
-      m_receveivedToProcess = "";
-      m_receivedMessageSerial = "";
-      m_newInputFound = false;
-    
-  }
-  
+      BTserial.println();
+      Serial.println();
 }
-void ExecuteCommand(String message){
 
-////////////////: Split the text from the ' ' space between:////////////////:
-    message.replace('|', ' ');
-    message.replace(';', ' ');
-    message.replace('\n', ' ');
-    message.replace('\r', ' ');
-    message.trim();
-    message.toLowerCase();
+void ExecuteCommand(CharArrayTarget mArray){
 
-    message = " " + message + " ";
-
-
-
-
-
-
-    const int maxStrings = 10;      // Maximum number of substrings
-    String substrings[maxStrings];  // String array to store the substrings
-    int count = 0;                  // Counter for the number of substrings
-
-
-    // Convert the input string to a character array
-    char charArray[message.length() + 1];
-    message.toCharArray(charArray, sizeof(charArray));
-
-    // Tokenize the string using spaces as delimiters
-    char* token = strtok(charArray, " ");
-    while (token != NULL && count < maxStrings) {
-      substrings[count] = token;
-      count++;
-      token = strtok(NULL, " ");
-    }
+    LogString("> MessageA:");
+    Log(mArray);
+    Replace(mArray,';', ' ');
+    Replace(mArray,'\n', ';');
+    Replace(mArray,'\r', ';');
+    ToLower(mArray);
+    Log(mArray);
+    LogString("Time Clock:"+ String(millis()));
+    Log(m_messageBuffer);
 
     int tstart = millis();
     int msToAdd = 0;
-    String shortcut;
+
+  int start=0;
+  int end=0;
+  CharArrayTarget shortcut = CharArrayTarget(m_messageBufferMax,0,0);
+  for(int i = 0 ; i < m_messageBufferMax; i++)
+  {
+    start= end;
+    if(m_messageBuffer[i]==' ' || m_messageBuffer[i]==';'){
+      end = i;
+      shortcut.set(m_messageBuffer, start, end);
+      //LogString("T1");
+      //Log(shortcut);
+      //LogString("T2s");
+      //Log(shortcut);
+      shortcut.trim();
+      //Log(shortcut);
+      //LogString("T2e");
+      //Log(shortcut);
+       if(shortcut.endwith('|')){
+           shortcut.removelastchar();
+     // LogString("T3");
+           int t = shortcut.getAsInt();
+           msToAdd=t;
+           LogString("AT "+String(t));
+       //    Log(shortcut);
+       }
+       else if(shortcut.endwith('>')){
+           shortcut.removelastchar();
+           int t = shortcut.getAsInt();
+           msToAdd+=t;
+           LogString("DELAY "+ String(t));
+        //   Log(shortcut);
+       } 
+      else  if(shortcut.endwith('\'')){
+          LogString("ShortCut release");
+          Log(shortcut);
+      } 
+      else if(shortcut.endwith('.')){
+          LogString("ShortCut press");
+          Log(shortcut);
+      }
+      else{
+        LogString("ShortCut:");
+        Log(shortcut);
+
+      }
+        
+
+
+      if(m_messageBuffer[i]==';')
+        break;
+    }
+  }
+  return;
+
+  /*
+   String message="";
+   int count=0;
+
     // Print the substrings
     for (int i = 0; i < count; i++) {
 
-
-      message = substrings[i];
       message = String(message);
       message = toLowerCase(message);
       message = trim(message);
       shortcut=message;
+      if(shortcut.length()==0)
+        continue;
+        
         if (m_debugModeSerial) {
 
           BTserial.print("#");
@@ -426,79 +784,6 @@ void ExecuteCommand(String message){
         }
 
         if (msToAdd <= 0) {
-
-
-          unsigned long t = millis();  // Get timestamp for comparison
-
-          if (message == String("a.") || message == String("bd.")) XInput.press(BUTTON_A);
-          else if (message == String("a'") || message == String("bd'")) XInput.release(BUTTON_A);
-          else if (message == String("x.") || message == String("bl.")) XInput.press(BUTTON_X);
-          else if (message == String("x'") || message == String("bl'")) XInput.release(BUTTON_X);
-          else if (message == String("b.") || message == String("br.")) XInput.press(BUTTON_B);
-          else if (message == String("b'") || message == String("br'")) XInput.release(BUTTON_B);
-          else if (message == String("y.") || message == String("bu.")) XInput.press(BUTTON_Y);
-          else if (message == String("y'") || message == String("bu'")) XInput.release(BUTTON_Y);
-          else if (message == String("start.") || message == String("mr.")) XInput.press(BUTTON_START);
-          else if (message == String("start'") || message == String("mr'")) XInput.release(BUTTON_START);
-          else if (message == String("back.") || message == String("ml.")) XInput.press(BUTTON_BACK);
-          else if (message == String("back'") || message == String("ml'")) XInput.release(BUTTON_BACK);
-          else if (message == String("xbox.") || message == String("logo.") || message == String("mc.")) XInput.press(BUTTON_LOGO);
-          else if (message == String("xbox'") || message == String("logo'") || message == String("mc'")) XInput.release(BUTTON_LOGO);
-
-          else if (message == String("debug on")) m_debugModeSerial = true;
-          else if (message == String("debug off")) m_debugModeSerial = false;
-          else if (message == String("debug")) m_debugModeSerial = !m_debugModeSerial;
-          else if (message == String("jl.") || message == String("l3.")) XInput.press(BUTTON_L3);
-          else if (message == String("jl'") || message == String("l3.")) XInput.release(BUTTON_L3);
-          else if (message == String("jr.") || message == String("r3.")) XInput.press(BUTTON_R3);
-          else if (message == String("jr'") || message == String("r3.")) XInput.release(BUTTON_R3);
-
-          else if (message == String("tl.") || message == String("l2.")) XInput.press(TRIGGER_LEFT);
-          else if (message == String("tl'") || message == String("l2.")) XInput.release(TRIGGER_LEFT);
-          else if (message == String("tr.") || message == String("r2.")) XInput.press(TRIGGER_RIGHT);
-          else if (message == String("tr'") || message == String("r2.")) XInput.release(TRIGGER_RIGHT);
-
-          else if (message == String("sbl.") || message == String("l1.")) XInput.press(BUTTON_LB);
-          else if (message == String("sbl'") || message == String("l1.")) XInput.release(BUTTON_LB);
-          else if (message == String("sbr.") || message == String("r1.")) XInput.press(BUTTON_RB);
-          else if (message == String("sbr'") || message == String("r1.")) XInput.release(BUTTON_RB);
-
-          else if (message == String("d.") || message == String("ad.")) {
-            m_down = true;
-          } else if (message == String("d'") || message == String("ad'")) {
-            m_down = false;
-          } else if (message == String("l.") || message == String("al.")) {
-            m_left = true;
-          } else if (message == String("l'") || message == String("al'")) {
-            m_left = false;
-          } else if (message == String("r.") || message == String("ar.")) {
-            m_right = true;
-          } else if (message == String("r'") || message == String("ar'")) {
-            m_right = false;
-          } else if (message == String("u.") || message == String("au.")) {
-            m_up = true;
-          } else if (message == String("u'") || message == String("au'")) {
-            m_up = false;
-          } else if (message == String("release")) {
-            XInput.releaseAll();
-            if (m_debugModeSerial)
-              BTserial.print("Release all");
-          }
-
-
-          XInput.setDpad(m_up, m_down, m_left, m_right);
-          //XInput.setTrigger(TRIGGER_LEFT, triggerVal);
-          //XInput.setTrigger(TRIGGER_RIGHT, TriggerMax - triggerVal);  // Inverse
-
-          // Calculate joystick x/y values using trig
-          // int axis_x = sin(angle) * JoyMax;
-          // int axis_y = cos(angle) * JoyMax;
-          //  angle += angle_precision;
-          // if (angle >= 360) {
-          //   angle -= 360;
-          // }
-          //
-
 
           if (message.indexOf('%') > -1) {
 
@@ -542,7 +827,79 @@ void ExecuteCommand(String message){
             //100> tl%1 5000> tl%-1 5000> tl%0 ;
           }
 
+        else{
+                unsigned long t = millis();  // Get timestamp for comparison
+                bool press=EndWith(message,'\'');
+                bool release=EndWith(message,'.');
+                uint8_t button=0;
+                
+                message.replace('.', ' ');
+                message.replace('\'', ' ');
+                message.trim();
 
+                if (message.startsWith("a") || message .startsWith("bd")) button=(BUTTON_A);
+                else if (message .startsWith("x") || message .startsWith("bl")) button=(BUTTON_X);
+                else if (message .startsWith("b") || message .startsWith("br")) button=(BUTTON_B);
+                else if (message .startsWith("y") || message .startsWith("bu")) button=(BUTTON_Y);
+                else if (message .startsWith("start") || message .startsWith("mr")) button=(BUTTON_START);
+                else if (message .startsWith("back") || message .startsWith("ml")) button=(BUTTON_BACK);
+                else if (message .startsWith("xbox") || message .startsWith("logo") || message .startsWith("mc")) button=(BUTTON_LOGO);
+
+                else if (message .startsWith("debug on")) m_debugModeSerial = true;
+                else if (message .startsWith("debug off")) m_debugModeSerial = false;
+                else if (message .startsWith("debug")) m_debugModeSerial = !m_debugModeSerial;
+                else if (message .startsWith("jl") || message .startsWith("l3")) button=(BUTTON_L3);
+                else if (message .startsWith("jr") || message .startsWith("r3")) button=(BUTTON_R3);
+
+                else if (message .startsWith("tl") || message .startsWith("l2")) button=(TRIGGER_LEFT);
+                else if (message .startsWith("tr") || message .startsWith("r2")) button=(TRIGGER_RIGHT);
+
+                else if (message .startsWith("sbl") || message .startsWith("l1")) button=(BUTTON_LB);
+                else if (message .startsWith("sbr") || message .startsWith("r1")) button=(BUTTON_RB);
+
+                else if (message .startsWith("d.") || message .startsWith("ad.")) {
+                  m_down = true;
+                } else if (message .startsWith("d'") || message .startsWith("ad'")) {
+                  m_down = false;
+                } else if (message .startsWith("l.") || message .startsWith("al.")) {
+                  m_left = true;
+                } else if (message .startsWith("l'") || message .startsWith("al'")) {
+                  m_left = false;
+                } else if (message .startsWith("r.") || message .startsWith("ar.")) {
+                  m_right = true;
+                } else if (message .startsWith("r'") || message .startsWith("ar'")) {
+                  m_right = false;
+                } else if (message .startsWith("u.") || message .startsWith("au.")) {
+                  m_up = true;
+                } else if (message .startsWith("u'") || message .startsWith("au'")) {
+                  m_up = false;
+                } else if (message .startsWith("release")) {
+                  XInput.releaseAll();
+                  if (m_debugModeSerial)
+                    BTserial.print("Release all");
+                }
+              if(press){
+                  XInput.press(button);
+              }
+              if(release){
+                  XInput.release(button);
+              }
+                
+
+
+                XInput.setDpad(m_up, m_down, m_left, m_right);
+
+
+              if (m_debugModeSerial) BTserial.print("\nXinput: " + String(button) + " " + String(press) + " " + String(release));
+              
+          
+        }
+
+
+         
+
+
+         
           if (m_wantToSendXboxReport)
             XInput.send();
 
@@ -554,7 +911,51 @@ void ExecuteCommand(String message){
         }
       }
     }
+    */
+
+    
+}
 
 
+
+int serialIndex=0;
+CharArrayTarget readSerialArray = CharArrayTarget();
+void loop() {
+
+    for (int i = 0; i < maxIndex; i++) { 
+        if (! delayArray[i].had_been_relay()) {
+            if (delayArray[i].is_time_reach()) {
+                delayArray[i].set_as_relayed();
+                Log("Exe:");
+                Log(delayArray[i].m_command);
+                //ExecuteCommand(toExe);
+            }
+        }
+    }
+
+
+
+
+
+  if (BTserial.available() > 0) {
+ 
+    char c = BTserial.read();
+    m_messageBuffer[serialIndex]=c;
+    serialIndex++;
+    if (c == '\n' || c == ';') {
+      Log(m_messageBuffer);
+      // if (m_debugModeSerial) {
+      //   LogString("\nArduino Recieved:\n"+m_receivedMessageSerial);
+      // }
+      readSerialArray.set(m_messageBuffer, 0, serialIndex);
+       ExecuteCommand(readSerialArray);
+
+      DebugLogWaiting();
+        m_receveivedToProcess = "";
+        m_receivedMessageSerial = "";
+        serialIndex=0;
+    }
+    }
+  
 }
 
