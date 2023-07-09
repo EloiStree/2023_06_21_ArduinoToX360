@@ -12,7 +12,9 @@ Maxium is around
 
 
 ```
-release 3000> jrh%0.1 jrv%0.1  jlh%0.1 jlv%0.1  tl%0.1 tr%0.1 3000> release jrh%-0.5 jrv%-0.5  jlh%-0.5 jlv%-0.5  tl%-0.5 tr%-0.5 3000> release jrh%1 500> jrv%1  500> jlh%1  500> jlv%1 500>  tl%-0.5  500> tr%1 ; 
+release 3000> jrh%0.5 jrv%0.5  jlh%0.5 jlv%0.5  tl%0.5 tr%0.5 5000> release 2000> jrh%-0.5 jrv%-0.5  jlh%-0.5 jlv%-0.5  tl%-0.5 tr%-0.5 5000> release 2000> jrh%1  jrv%1  jlh%1   jlv%1   tl%1   tr%1 5000> release ;
+
+jlh%0.0 jlv%0.5 2000> release; 
 ```
 
 ```
@@ -35,5 +37,10 @@ release 4000> ml. 1000> ml'  1000> mc. 1000> mc'  1000> mr. 1000> mr' release 50
 
 
 release 4000> tl%0 1000> tl%0.2 1000> tl%0.5 1000>  tl%0.9 1000>  tl%1 3000> tr%0 1000> tr%0.2 1000> tr%0.5 1000>  tr%0.9 1000>  tr%1 5000> release ;
+
+
+2000> al. y. b. 2000> al' y' b' release;
+2000> jlh%1  jlv%0.1  jrh%1  jrv%0.1 8000> release ;
+
 ```
 
