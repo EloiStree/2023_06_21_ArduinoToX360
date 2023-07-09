@@ -1,7 +1,7 @@
-![image](https://github.com/EloiStree/2023_06_21_ArduinoToX360/assets/20149493/d67d5e6d-2545-448d-a018-0c78ad29710c)
-![image](https://github.com/EloiStree/2023_06_21_ArduinoToX360/assets/20149493/5cb8c578-b97f-4355-bb95-27f2e2169928)
-If not change, the max size of a text is around 240 char
-
+![image](https://github.com/EloiStree/2023_06_21_ArduinoToX360/assets/20149493/d67d5e6d-2545-448d-a018-0c78ad29710c)  
+![image](https://github.com/EloiStree/2023_06_21_ArduinoToX360/assets/20149493/5cb8c578-b97f-4355-bb95-27f2e2169928)  
+If not change, the max size of a text is around 240 char  
+  
 
 ```
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
