@@ -29,5 +29,6 @@ release 4000> a. 1000> a'  1000> b. 1000> b'  1000> y. 1000> y'  1000> x. 1000> 
 release 4000> al. 1000> al'  1000> ar. 1000> ar'  1000> au. 1000> au'  1000> ad. 1000> ad'  1000> release ;
 
 
+release 4000> ml. 1000> ml'  1000> mc. 1000> mc'  1000> mr. 1000> mr' release 5000>  ml. mc. mr. 4000> ml'  mc' mr' ;
 ```
 
