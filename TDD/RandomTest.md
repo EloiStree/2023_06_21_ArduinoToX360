@@ -48,7 +48,10 @@ release 4000> tl%0 1000> tl%0.2 1000> tl%0.5 1000>  tl%0.9 1000>  tl%1 3000> tr%
 Diablo 4
 ```
 
-jlh%0.4 jlv%-0.0  jrh%1 jrv%1 3000> release ; 3000> release ;
+
+//Test joystick Left
+jlh%0.3 jlv%0.3 2000>  jlh%-0.3 jlv%-0.3 2000>  jlh%1 jlv%0 2000>  jlh%-1.0 jlv%0.0 2000> jlh%0 jlv%1 2000>  jlh%0 jlv%-1.0 2000>   release ;
+
 
 ```
 
