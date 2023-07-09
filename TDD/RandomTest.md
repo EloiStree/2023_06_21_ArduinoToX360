@@ -30,5 +30,10 @@ release 4000> al. 1000> al'  1000> ar. 1000> ar'  1000> au. 1000> au'  1000> ad.
 
 
 release 4000> ml. 1000> ml'  1000> mc. 1000> mc'  1000> mr. 1000> mr' release 5000>  ml. mc. mr. 4000> ml'  mc' mr' ;
+// MC logo don't seem to be usable.  Maybe I did something wrong. Or it was not on 360 controller ?
+
+
+
+release 4000> tl%0 1000> tl%0.2 1000> tl%0.5 1000>  tl%0.9 1000>  tl%1 3000> tr%0 1000> tr%0.2 1000> tr%0.5 1000>  tr%0.9 1000>  tr%1 5000> release ;
 ```
 
