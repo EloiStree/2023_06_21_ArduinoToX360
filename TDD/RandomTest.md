@@ -44,3 +44,12 @@ release 4000> tl%0 1000> tl%0.2 1000> tl%0.5 1000>  tl%0.9 1000>  tl%1 3000> tr%
 
 ```
 
+
+Diablo 4
+```
+
+jlh%0.4 jlv%-0.0  jrh%1 jrv%1 3000> release ; 3000> release ;
+
+```
+
+
