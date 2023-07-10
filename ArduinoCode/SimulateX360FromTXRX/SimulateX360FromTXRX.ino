@@ -129,7 +129,7 @@ public:
       //  Serial.println(String(powdecimal(i)));
       value += getAsInt(c) * powdecimal(i);
     }
-    if (GetChar(0) == "-")
+    if ( indexofabsolute('-') > -1)
       value = -value;
     //  Serial.print(" R ");
     //  Serial.println(value);
@@ -873,6 +873,13 @@ void Log(CharArrayTarget toLog, char limiter, String debug) {
   DisplayArray();
 }
 
+void R(){
+  randomSeed(analogRead(0));
+}
+float RP(){
+  return random(0, 100)/100.0;
+}
+
 CharArrayTarget cmd = CharArrayTarget();
 void ExecuteWaitingCommand(char* command) {
   cmd.set(command, 0, strlen(command) - 1);
@@ -902,32 +909,44 @@ void ExecuteWaitingCommand(char* command) {
   if (cmd.indexofrelative('%') > -1) {
 
     float value = GetFloatBehindPercent(cmd);
-
+    R();
     if (m_debugModeSerial)
       Log(cmd, '?', "VALUE:" + String(value));
+    if (cmd.startwith('r')) {
+           if (cmd.equals('r','j', 'l', 'h')) {  R(); m_jlh = RP(); }
+      else if (cmd.equals('r','j', 'l', 'v')) {  R(); m_jlv = RP(); }
+      else if (cmd.equals('r','j', 'r', 'h')) {  R(); m_jrh = RP(); }
+      else if (cmd.equals('r','j', 'r', 'v')) {  R(); m_jrv = RP(); }
+      
+      else if (cmd.equals('r','j', 'l')) {  R();m_jlh = RP();  R(); m_jlv = RP(); }
+      else if (cmd.equals('r','j', 'r')) {  R();m_jrh = RP();  R(); m_jrv = RP(); }
+      else if (cmd.equals('r','j')) { 
+      R(); m_jlh = RP();
+      R(); m_jlv = RP();
+      R(); m_jrh = RP();
+      R(); m_jrv = RP();
+        }
 
-
+    }
     if (cmd.startwith('j', 'l', 'h', '%')) {
-      m_jlh = value;
+      m_jlh = (value+1.0)/2.0;
       if (m_debugModeSerial) Log(cmd, '!', "\njlh " + String(m_jlh) + " " + String(m_jlv));
-      XInput.setJoystick(JOY_LEFT, m_jlh * (float)ADC_Max, m_jlv * (float)ADC_Max);
     }
     if (cmd.startwith('j', 'l', 'v', '%')) {
-      m_jlv = value;
+      m_jlv = (value+1.0)/2.0;
       if (m_debugModeSerial) Log(cmd, '!', "\njlv " + String(m_jlh) + " " + String(m_jlv));
-      XInput.setJoystick(JOY_LEFT,(m_jlh * (float)ADC_Max), (m_jlv * (float)ADC_Max));
     }
     if (cmd.startwith('j', 'r', 'h', '%')) {
-      m_jrh = value;
+      m_jrh = (value+1.0)/2.0;
       if (m_debugModeSerial) Log(cmd, '!', "\njrh " + String(m_jrh) + " " + String(m_jrv));
-      XInput.setJoystick(JOY_RIGHT, (-m_jrh * (float)ADC_Max),( m_jrv * (float)ADC_Max));
     }
     if (cmd.startwith('j', 'r', 'v', '%')) {
-      m_jrv = value;
+      m_jrv = (value+1.0)/2.0;
       if (m_debugModeSerial) Log(cmd, '!', "\njrv " + String(m_jrh) + " " + String(m_jrv));
-      XInput.setJoystick(JOY_RIGHT,( -m_jrh * (float)ADC_Max),( m_jrv * (float)ADC_Max));
     }
 
+      XInput.setJoystick(JOY_LEFT,(m_jlh * (float)ADC_Max), (m_jlv * (float)ADC_Max));
+      XInput.setJoystick(JOY_RIGHT,( m_jrh * (float)ADC_Max),( m_jrv * (float)ADC_Max));
     if (cmd.startwith('t', 'l', '%')) {
 
       if (m_debugModeSerial) Log(cmd, '!', "\ntl " + String(value));
@@ -957,7 +976,7 @@ void ExecuteWaitingCommand(char* command) {
     if (cmd.endwith('\'')) {
       press = false;
     }
-    uint8_t button = 0;
+    uint8_t button = -1;
 
     cmd.replace('.', ' ');
     cmd.replace('\'', ' ');
@@ -965,7 +984,7 @@ void ExecuteWaitingCommand(char* command) {
 
     if (m_debugModeSerial)
       Log(cmd, '!');
-
+    bool dpadChange=false;
     if (cmd.equals('a') || cmd.equals('b', 'd')) {
       button = (BUTTON_A);
       if (m_debugModeSerial) Log(cmd, '!', "BUTTON_A");
@@ -1025,28 +1044,34 @@ void ExecuteWaitingCommand(char* command) {
     else if (cmd.equals('d') || cmd.equals('a', 'd')) {
       if (press) m_down = true;
       if (release) m_down = false;
+      dpadChange=true;
       if (m_debugModeSerial) Log(cmd, '!', "Arrow Down");
 
     } else if (cmd.equals('l') || cmd.equals('a', 'l')) {
       if (press) m_left = true;
       if (release) m_left = false;
+      dpadChange=true;
       if (m_debugModeSerial) Log(cmd, '!', "Arrow Left");
     } else if (cmd.equals('r') || cmd.equals('a', 'r')) {
       if (press) m_right = true;
       if (release) m_right = false;
+      dpadChange=true;
       if (m_debugModeSerial) Log(cmd, '!', "Arrow Right");
     } else if (cmd.equals('u') || cmd.equals('a', 'u')) {
       if (press) m_up = true;
       if (release) m_up = false;
+      dpadChange=true;
       if (m_debugModeSerial) Log(cmd, '!', "Arrow Up");
     } else if (cmd.equals("release")) {
       XInput.releaseAll();
+      dpadChange=true;
       if (m_debugModeSerial)
         Log(cmd, '!', "Release all");
     }
 
-
-    XInput.setDpad(m_up, m_down, m_left, m_right);
+  
+  if( dpadChange)
+    XInput.setDpad(m_up, m_down, m_left, m_right,false);
 
 
 
