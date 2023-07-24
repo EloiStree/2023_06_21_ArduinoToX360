@@ -70,5 +70,17 @@ For the joystick you can write command like this
 To know all the input you can check in the Ino file of the repository.
  
 
+### Example of serial message you can send
+
+`a. 100> a' ;` Press A then release A
+`ar. 100> ar' ;` Press arrow right then release arrow right
+`a. b. x. y. 200> release ;`press all power button then release all
+`bd. bl. br. bt. 200> release ;` press all power button then release all
+`ad. al. ar. at. 200> release ;` press all arrow then release all
+`jl. 400> jl' ;` Press joystick left stick
+`jlh%1.0 400> jlh%-1.0 400> jlh%0  ;` Move left then right then stop
+
+
+
 
 
