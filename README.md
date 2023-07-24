@@ -8,7 +8,8 @@ In this video, I show the step to install and use the project.
 It is low quality but it is just to archived and be able to remind myself how I did it.  
 Hope it helps you if you want to do the same as me.  
 
-[![image](https://github.com/EloiStree/2023_06_21_ArduinoToX360/assets/20149493/af2f3635-20b3-432a-9b5c-5eed4a6ee2cf)](https://youtu.be/cKlV_1cfsJc)  
+[![image](https://github.com/EloiStree/2023_06_21_ArduinoToX360/assets/20149493/af2f3635-20b3-432a-9b5c-5eed4a6ee2cf)](https://youtu.be/cKlV_1cfsJc)
+Video: https://youtu.be/cKlV_1cfsJc  
 
 
 ## How to use ?
