@@ -1,5 +1,6 @@
-> This project took me days/weeks to work on and will take me weeks to clean and add documentation through the year.
-If you can support my work by sending me a beer :) I would love it. Hope you enjoy the code and the tool.
+> This project took me days/weeks to work on and will take me weeks to clean and add documentation through the year.  
+If you can support my work by sending me a beer :) I would love it. Hope you enjoy the code and the tool.  
+>   
 > One time donation: http://eloi.page.link/beer  
 > Monthy support of my works: http://eloi.page.link/tipeee  
 
