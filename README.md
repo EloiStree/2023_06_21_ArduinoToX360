@@ -1,3 +1,8 @@
+> This project took me days/weeks to work on and will take me weeks to clean and add documentation through the year.
+If you can support my work by sending me a beer :) I would love it. Hope you enjoy the code and the tool.
+> One time donation: http://eloi.page.link/beer
+> Monthy support of my works: http://eloi.page.link/tipeee
+
 # 2023_06_21_ArduinoToX360
 In the repository you can find an Arduino wrapper of  Arduino XInput that allows you to control X360 with Brook from your TTL or HC06
 
